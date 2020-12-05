@@ -14,6 +14,7 @@ Display::Display(int width, int height, const std::string& title) {
 	SDL_GL_SetAttribute(SDL_GL_BUFFER_SIZE, 32);
 	SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
 
+	SDL_SetRelativeMouseMode(SDL_TRUE);
 
 	// Creating the window 
 	m_window = SDL_CreateWindow(title.c_str(), SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, width, height, SDL_WINDOW_OPENGL);
@@ -45,14 +46,6 @@ bool Display::IsClosed() {
 // Allows us to work with double buffers by swapping them.
 void Display::Update() {
 	SDL_GL_SwapWindow(m_window);
-
-	// Event handling
-	SDL_Event e;
-
-	while (SDL_PollEvent(&e)) {
-		if (e.type == SDL_QUIT)
-			m_isClosed = true;
-	}
 }
 
 // Clear the display by setting color and setting every pixel to that color

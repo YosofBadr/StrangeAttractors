@@ -12,6 +12,9 @@ public:
 	void Clear(float r, float g, float b, float a);
 	bool IsClosed();
 
+	inline void SetState(bool state) { m_isClosed = state; }
+
+
 	virtual ~Display();
 protected:
 private:
