@@ -6,7 +6,6 @@
 #include "transform.h"
 #include "particle.h"
 #include "camera.h"
-#include <vector>
 
 #define WIDTH 1920
 #define HEIGHT 1080
@@ -29,19 +28,54 @@ std::vector<Particle> initParticles(unsigned int numOfParticles) {
     return particles;
 };
 
+unsigned int lastFreeIndex = 0;
+unsigned int findFreeIndex(std::vector<Particle> particles) {
+    for (unsigned int i = lastFreeIndex; i < particles.size(); ++i) {
+        if (particles[i].GetLifeSpan() <= 0.0f) {
+            lastFreeIndex = i;
+            return i;
+        }
+    }
+    // otherwise, do a linear search
+    for (unsigned int i = 0; i < lastFreeIndex; i++) {
+        if (particles[i].GetLifeSpan() <= 0.0f) {
+            lastFreeIndex = i;
+            return i;
+        }
+    }
+    // override first particle if all others are alive
+    lastFreeIndex = 0;
+    return 0;
+}
+
+void printInstructions() {
+    std::cout << "KEYBINDS" << std::endl;
+    std::cout << "r/R: increase/decrease red channel" << std::endl;
+    std::cout << "g/G: increase/decrease green channel" << std::endl;
+    std::cout << "b/B: increase/decrease blue channel" << std::endl;
+    std::cout << "l/L: increase/decrease lifetime" << std::endl;
+    std::cout << "t/T: increase/decrease change in time" << std::endl;
+    std::cout << "i/I: increase/decrease sigma" << std::endl;
+    std::cout << "o/O: increase/decrease rho" << std::endl;
+    std::cout << "p/P: increase/decrease beta" << std::endl;
+}
+
 int main(int argc, char* args[])
 {
     Display display(WIDTH, HEIGHT, "Strange Attractor");
-
+    
+    printInstructions();
     //Vertex vertices[] = {   
     //                        Vertex(glm::vec3(-0.5, -0.5, 0.0)), 
     //                        Vertex(glm::vec3(0, 0.5, 0)),
     //                        Vertex(glm::vec3(0.5, -0.5, 0)),
     //                    };
 
+    glEnable(GL_POINT_SMOOTH);
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    //glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE);
     const int FPS = 60;
     const int frameDelay = 1000 / FPS;
 
@@ -53,12 +87,21 @@ int main(int argc, char* args[])
     Camera camera(glm::vec3(0.0f, 0.0f, 2.0f), 70.0f, (float)WIDTH / (float)HEIGHT, 0.1f, 1000.0f);
 
     // Change in time
-    float dt = 0.01f;
+    float dt = 0.005f;
+
+    // Rate of life span decay
+    float decay = 0.002f;
+
+    int attractor = 1;
 
     // Constants/World Variables - Lorenz Attractor
     float sigma = 10;
     float rho = 28;
     float beta = 8.0 / 3.0;
+
+    float red = 0.0f;
+    float blue = 0.0f;
+    float green = 0.0f;
 
     float scale = 0.02f;
 
@@ -67,7 +110,8 @@ int main(int argc, char* args[])
     float b = 0.2f;
     float r = 5.7;
 
-    const unsigned int numOfParticles = 1000;
+    const unsigned int numOfParticles = 10000;
+    unsigned int numberOfDead = 0;
     std::vector<Particle> particles = initParticles(numOfParticles);
 
     //std::vector<glm::vec3> vertices(numOfParticles);
@@ -78,12 +122,12 @@ int main(int argc, char* args[])
     //                };
 
     glm::vec3* vertices = new glm::vec3[numOfParticles];
+    
     //std::vector<Vertex> vertices;
-
     //vertices.push_back(Vertex(glm::vec3(-0.5, -0.5, 0.0)));
     //vertices.push_back(Vertex(glm::vec3(0, 0.5, 0)));
     //vertices.push_back(Vertex(glm::vec3(0.5, -0.5, 0)));
-    Mesh mesh(vertices, numOfParticles);
+    //Mesh mesh(vertices, numOfParticles);
     //Mesh mesh(particles, sizeof(*particles) / sizeof(particles[0]));
 
     // Camera settings
@@ -101,43 +145,86 @@ int main(int argc, char* args[])
 
         display.Clear(0.0f, 0.0f, 0.0f, 1.0f);
 
-        for (int i = 0; i < numOfParticles; i++) {
-            float x = particles[i].GetPos().x;
-            float y = particles[i].GetPos().y;
-            float z = particles[i].GetPos().z;
+        if (numberOfDead > numOfParticles / 10) {
+            for (int i = 0; i < numberOfDead; i++) {
+                int emptyIndex = findFreeIndex(particles);
 
-            // Compute change in position based on current position 
-            float dx = (sigma * (y - x)) * dt;
-            float dy = ((x * (rho - z)) - y) * dt;
-            float dz = ((x * y) - (beta * z)) * dt;
+                particles[emptyIndex] = Particle();
+            }
 
-            // Compute change in position based on current position 
-            //float dx = ((alpha * x * -1) - (4 * y) - (4 * z) - (y * y)) * dt;
-            //float dy = ((alpha * y * -1) - (4 * z) - (4 * x) - (z * z)) * dt;
-            //float dz = ((alpha * z * -1) - (4 * x) - (4 * y) - (x * x)) * dt;
-
-            //float dx = (-1 * (y + z)) * dt;
-            //float dy = (x + (a * y)) * dt;
-            //float dz = (b + z * (x - r)) * dt;
-
-            particles[i].SetPrevPos(glm::vec3(x, y, z));
-
-            // Update location
-            x += dx;
-            y += dy;
-            z += dz;
-
-            particles[i].SetPos(glm::vec3(x, y, z));
+            numberOfDead = 0;
         }
 
+        // Update particles
+        for (int i = 0; i < numOfParticles; i++) {
+            particles[i].GetLifeSpan() -= decay;
+            if (particles[i].GetLifeSpan() > 0) {
+                float x = particles[i].GetPos().x;
+                float y = particles[i].GetPos().y;
+                float z = particles[i].GetPos().z;
+
+                float dx, dy, dz;
+
+                // Compute change in position based on attractor
+                switch (attractor) {
+                    case 1:
+                        dx = (sigma * (y - x)) * dt;
+                        dy = ((x * (rho - z)) - y) * dt;
+                        dz = ((x * y) - (beta * z)) * dt;
+                    break;
+
+                    case 2:
+                        dx = ((alpha * x * -1) - (4 * y) - (4 * z) - (y * y)) * dt;
+                        dy = ((alpha * y * -1) - (4 * z) - (4 * x) - (z * z)) * dt;
+                        dz = ((alpha * z * -1) - (4 * x) - (4 * y) - (x * x)) * dt;
+                        break;
+
+                    case 3:
+                        dx = (-1 * (y + z)) * dt;
+                        dy = (x + (a * y)) * dt;
+                        dz = (b + z * (x - r)) * dt;
+                        break;
+                                   
+                }
+
+                particles[i].SetPrevPos(glm::vec3(x, y, z));
+
+                // Update location
+                x += dx;
+                y += dy;
+                z += dz;
+
+                particles[i].SetPos(glm::vec3(x, y, z));
+            }
+            else {
+                numberOfDead += 1;
+            }
+        }
+
+
+        //glPointSize(5);
+        //glBegin(GL_POINTS);
+        //for (int i = 0; i < numOfParticles; i++) {
+        //    // Draw Particle trail
+        //    if (particles[i].GetLifeSpan() > 0.0f) {
+        //        glColor4f(1.0f, 0.0f, 1.0f, particles[i].GetLifeSpan() + 0.05f);
+        //        glVertex3f(particles[i].GetPrevPos().x * scale, particles[i].GetPrevPos().y * scale, particles[i].GetPrevPos().z * scale);
+        //    }
+        //}
+        //glEnd();
+
          //Follows path of lerenz attractor 
-        glPointSize(2);
         glBegin(GL_LINES);
             for (int i = 0; i < numOfParticles; i++) {
-                // Draw point
-                glColor4f(1.0f, 0.0f, 1.0f, 0.5f);
-                glVertex3f(particles[i].GetPrevPos().x * scale, particles[i].GetPrevPos().y * scale, particles[i].GetPrevPos().z * scale);
-                glVertex3f(particles[i].GetPos().x * scale, particles[i].GetPos().y * scale, particles[i].GetPos().z * scale);
+                // Draw Particle trail
+                if (particles[i].GetLifeSpan() > 0.0f) {
+                    glColor4f(particles[i].GetColor().x + red, particles[i].GetColor().y + green, particles[i].GetColor().z + blue, particles[i].GetLifeSpan());
+                    //glBegin(GL_POINTS);
+                    //    glVertex3f(particles[i].GetPos().x * scale, particles[i].GetPos().y * scale, particles[i].GetPos().z * scale);
+                    //glEnd();
+                    glVertex3f(particles[i].GetPrevPos().x* scale, particles[i].GetPrevPos().y* scale, particles[i].GetPrevPos().z* scale);
+                    glVertex3f(particles[i].GetPos().x* scale, particles[i].GetPos().y* scale, particles[i].GetPos().z* scale);
+                }
             }
         glEnd();
 
@@ -145,17 +232,26 @@ int main(int argc, char* args[])
         //    vertices[i] = particles[i].GetPos();
         //    std::cerr << "x: " << vertices[i].x << std::endl;
         //    std::cerr << "x part " << particles[i].GetPos().x << std::endl;
-
-
         //}
 
         shader.Bind();
         shader.Update(transform, camera);
-        mesh.Draw(vertices, numOfParticles);
+        //mesh.Draw(vertices, numOfParticles);
 
         // Event handling
         SDL_Event Event;
+        const Uint8* keyboard_state_array = SDL_GetKeyboardState(NULL);
         glm::vec3& cameraPos = camera.GetPos();;
+
+        // KEYBINDS
+        // ESC - CLOSE
+        // SPACE - RESET
+        // r/R to increase/decrease red 
+        // b/B to increase/decrease blue 
+        // g/G to increase/decrease green 
+        // l/L to increase/decrease lifetime
+        // l/L to increase/decrease lifetime
+        // t/T to increase/decrease change in time
 
         while (SDL_PollEvent(&Event)) {
             switch (Event.type) {
@@ -173,14 +269,115 @@ int main(int argc, char* args[])
                     particles = initParticles(numOfParticles); 
                     break;
                    
-                case SDLK_RIGHTBRACKET:
-                    dt += 0.001f;
-                    std::cout << "dt increased: " << dt << std::endl;
+                case SDLK_r:
+                    if (keyboard_state_array[SDL_SCANCODE_R] && !(keyboard_state_array[SDL_SCANCODE_LCTRL])) {
+                        red -= 0.05f;
+                        std::cout << "Red decreased: " << red << std::endl;
+                    }
+                    else {
+                        red += 0.05f;
+                        std::cout << "Red increased: " << red << std::endl;
+                    }
                     break;
 
-                case SDLK_LEFTBRACKET:
-                    dt -= 0.001f;
-                    std::cout << "dt decreased: " << dt << std::endl;
+                case SDLK_b:
+                    if (keyboard_state_array[SDL_SCANCODE_B] && !(keyboard_state_array[SDL_SCANCODE_LCTRL])) {
+                        blue -= 0.05f;
+                        std::cout << "Blue decreased: " << blue << std::endl;
+                    }
+                    else {
+                        blue += 0.05f;
+                        std::cout << "Blue increased: " << blue << std::endl;
+                    }
+                    break;
+
+                case SDLK_g:
+                    if (keyboard_state_array[SDL_SCANCODE_G] && !(keyboard_state_array[SDL_SCANCODE_LCTRL])) {
+                        green -= 0.05f;
+                        std::cout << "Green decreased: " << green << std::endl;
+                    }
+                    else {
+                        green += 0.05f;
+                        std::cout << "Green increased: " << green << std::endl;
+                    }
+                    break;
+
+                case SDLK_l:
+                    if (keyboard_state_array[SDL_SCANCODE_L] && !(keyboard_state_array[SDL_SCANCODE_LCTRL])) {
+                        decay += 0.002f;
+                        std::cout << "Lifetime decreased: " << decay << std::endl;
+
+                    }
+                    else {
+                        decay -= 0.002f;
+                        std::cout << "Lifetime increased: " << decay << std::endl;
+                    }
+                    break;
+
+                case SDLK_t:
+                    if (keyboard_state_array[SDL_SCANCODE_T] && !(keyboard_state_array[SDL_SCANCODE_LCTRL])) {
+                        dt -= 0.001f;
+                        std::cout << "dt decreased: " << dt << std::endl;
+                    }
+                    else {
+                        dt += 0.001f;
+                        std::cout << "dt increased: " << dt << std::endl;
+                    }
+                    break;
+
+                case SDLK_i:
+                    if (keyboard_state_array[SDL_SCANCODE_I] && !(keyboard_state_array[SDL_SCANCODE_LCTRL])) {
+                        sigma -= 0.1f;
+                        std::cout << "Sigma decreased: " << sigma << std::endl;
+                    }
+                    else {
+                        sigma += 0.1f;
+                        std::cout << "Sigma increased: " << sigma << std::endl;
+                    }
+                    break;
+
+                case SDLK_o:
+                    if (keyboard_state_array[SDL_SCANCODE_O] && !(keyboard_state_array[SDL_SCANCODE_LCTRL])) {
+                        rho -= 0.1f;
+                        std::cout << "Rho decreased: " << rho << std::endl;
+                    }
+                    else {
+                        rho += 0.1f;
+                        std::cout << "Rho increased: " << rho << std::endl;
+                    }
+                    break;
+
+                case SDLK_p:
+                    if (keyboard_state_array[SDL_SCANCODE_P] && !(keyboard_state_array[SDL_SCANCODE_LCTRL])) {
+                        beta -= 0.1f;
+                        std::cout << "Beta decreased: " << beta << std::endl;
+                    }
+                    else {
+                        beta += 0.1f;
+                        std::cout << "Beta increased: " << beta << std::endl;
+                    }
+                    break;
+
+                // Select Attractor
+                case SDLK_1:
+                    scale = 0.02f;
+                    attractor = 1;
+                    dt = 0.005f;
+                    particles = initParticles(numOfParticles);
+                    break;
+
+                case SDLK_2:
+                    scale = 0.02f;
+                    attractor = 2;
+                    dt = 0.0005f;
+                    particles = initParticles(numOfParticles);
+                    break;
+
+                case SDLK_3:
+                    scale = 0.0005f;
+                    attractor = 3;
+                    dt = 0.01f;
+                    particles = initParticles(numOfParticles);
                     break;
 
                 // MOVEMENT

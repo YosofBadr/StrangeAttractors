@@ -1,6 +1,8 @@
 #pragma once
 
 #include <glm/glm.hpp>
+#include <vector>
+
 
 class Particle {
 public:
@@ -15,11 +17,16 @@ public:
 		float yCoord = random() * 10.0;
 		float zCoord = random() * 10.0;
 
+		float red = random() * 1.0;
+		float blue = random() * 1.0;
+		float green = random() * 1.0;
+
 		this->m_pos = glm::vec3(xCoord, yCoord, zCoord);
-		this->m_prevPos = glm::vec3(0.0, 0.0, 0.0);
-		this->m_color = glm::vec4(1.0, 1.0, 0.0, 1.0);
-		this->m_lifeSpan = 1.0f;
+		this->m_prevPos = glm::vec3(xCoord, yCoord, zCoord);
+		this->m_color = glm::vec4(red, green, blue, 1.0);
+		this->m_lifeSpan = 10.0f;
 	}
+
 	Particle(glm::vec3 givenPos, glm::vec4 giveColor) {
 		this->m_prevPos = givenPos;
 		this->m_pos = givenPos;
@@ -45,5 +52,6 @@ private:
 	glm::vec3 m_prevPos;
 	glm::vec4 m_color;
 	float m_lifeSpan;
+	unsigned int m_lastFreeIndex;
 };
 
