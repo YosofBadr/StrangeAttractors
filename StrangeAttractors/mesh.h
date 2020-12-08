@@ -2,25 +2,26 @@
 
 #include <glm/glm.hpp>
 #include <GL/glew.h>
+#include <vector>
 
-class Vertex {
-public:
-	Vertex(const glm::vec3& pos) {
-		this->pos = pos;
-	}
-
-protected:
-private:
-	glm::vec3 pos;
-};
+//class Vertex {
+//public:
+//	Vertex(const glm::vec3& pos) {
+//		this->pos = pos;
+//	}
+//
+//protected:
+//private:
+//	glm::vec3 pos;
+//};
 
 class Mesh
 {
 public:
 	// Mesh takes in the list of vertices
-	Mesh(Vertex* vertices, unsigned int numVertices);
+	Mesh(glm::vec3* vertices, unsigned int numVertices);
 
-	void Draw();
+	void Draw(glm::vec3* vertices, unsigned int numVertices);
 
 	virtual ~Mesh();
 

@@ -6,6 +6,7 @@
 #include "transform.h"
 #include "particle.h"
 #include "camera.h"
+#include <vector>
 
 #define WIDTH 1920
 #define HEIGHT 1080
@@ -18,13 +19,13 @@ float myRandom()
 }
 
 Particle* initParticles(int numOfParticles) {
-    Particle particles[1000];
+    Particle* particles = new Particle[numOfParticles];
     // Init particles
     for (int i = 0; i < numOfParticles; i++) {
-        float xCoord = myRandom() * 5.0;
-        float yCoord = myRandom() * 5.0;
-        float zCoord = myRandom() * 5.0;
-        particles[i] = Particle(glm::vec3(xCoord, yCoord, zCoord), glm::vec4(1.0f, 1.0f, 0.0f, 0.5f));
+        float xCoord = myRandom() * 10.0;
+        float yCoord = myRandom() * 10.0;
+        float zCoord = myRandom() * 10.0;
+        particles[i] = Particle(glm::vec3(xCoord, yCoord, zCoord), glm::vec4(1.0f, 1.0f, 0.0f, 0.1f));
     }
 
     return particles;
@@ -40,32 +41,52 @@ int main(int argc, char* args[])
     //                        Vertex(glm::vec3(0.5, -0.5, 0)),
     //                    };
 
-    glEnable(GL_POINT_SMOOTH);
+    glEnable(GL_DEPTH_TEST);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     const int FPS = 60;
     const int frameDelay = 1000 / FPS;
 
     Uint32 frameStart;
     int frameTime;
 
-    // Mesh mesh(vertices, sizeof(vertices) / sizeof(vertices[0]));
     Shader shader("./res/shader");
     Transform transform;
     Camera camera(glm::vec3(0.0f, 0.0f, 2.0f), 70.0f, (float)WIDTH / (float)HEIGHT, 0.1f, 1000.0f);
 
-    const unsigned int numOfParticles = 1000;
-    Particle* particles = initParticles(numOfParticles);
-
     // Change in time
     float dt = 0.01f;
-    dt = 0.01f;
 
-    // Constants/World Variables, change the outcome of the system
+    // Constants/World Variables - Lorenz Attractor
     float sigma = 10;
     float rho = 28;
     float beta = 8.0 / 3.0;
-    float alpha = 1.4f;
 
     float scale = 0.02f;
+
+    float alpha = 1.4f;
+    float a = 0.2f;
+    float b = 0.2f;
+    float r = 5.7;
+
+    const unsigned int numOfParticles = 10000;
+    Particle* particles = initParticles(numOfParticles);
+
+    //std::vector<glm::vec3> vertices(numOfParticles);
+    //glm::vec3 vertices[] = {
+    //                    glm::vec3(-0.5, -0.5, 0.0), 
+    //                    glm::vec3(0, 0.5, 0),
+    //                    glm::vec3(0.5, -0.5, 0),
+    //                };
+
+    glm::vec3* vertices = new glm::vec3[numOfParticles];
+    //std::vector<Vertex> vertices;
+
+    //vertices.push_back(Vertex(glm::vec3(-0.5, -0.5, 0.0)));
+    //vertices.push_back(Vertex(glm::vec3(0, 0.5, 0)));
+    //vertices.push_back(Vertex(glm::vec3(0.5, -0.5, 0)));
+    Mesh mesh(vertices, numOfParticles);
+    //Mesh mesh(particles, sizeof(*particles) / sizeof(particles[0]));
 
     // Camera settings
     const float cameraSpeed = 0.2f;
@@ -75,12 +96,12 @@ int main(int argc, char* args[])
     float yaw = -90.0f;
     float pitch = 0.0f;
     bool firstMouse = true;
-
+ 
     // While window is running do some drawing
     while (!display.IsClosed()) {
         frameStart = SDL_GetTicks();
 
-        display.Clear(0.0f, 0.0f, 0.0f, 0.0f);
+        display.Clear(0.0f, 0.0f, 0.0f, 1.0f);
 
         for (int i = 0; i < numOfParticles; i++) {
             float x = particles[i].GetPos().x;
@@ -97,6 +118,12 @@ int main(int argc, char* args[])
             //float dy = ((alpha * y * -1) - (4 * z) - (4 * x) - (z * z)) * dt;
             //float dz = ((alpha * z * -1) - (4 * x) - (4 * y) - (x * x)) * dt;
 
+            //float dx = (-1 * (y + z)) * dt;
+            //float dy = (x + (a * y)) * dt;
+            //float dz = (b + z * (x - r)) * dt;
+
+            particles[i].SetPrevPos(glm::vec3(x, y, z));
+
             // Update location
             x += dx;
             y += dy;
@@ -105,18 +132,28 @@ int main(int argc, char* args[])
             particles[i].SetPos(glm::vec3(x, y, z));
         }
 
-        // Follows path of lerenz attractor 
-        glPointSize(5);
-        glBegin(GL_POINTS);
+         //Follows path of lerenz attractor 
+        glPointSize(2);
+        glBegin(GL_LINES);
             for (int i = 0; i < numOfParticles; i++) {
                 // Draw point
+                glColor4f(1.0f, 0.0f, 1.0f, 0.5f);
+                glVertex3f(particles[i].GetPrevPos().x * scale, particles[i].GetPrevPos().y * scale, particles[i].GetPrevPos().z * scale);
                 glVertex3f(particles[i].GetPos().x * scale, particles[i].GetPos().y * scale, particles[i].GetPos().z * scale);
             }
         glEnd();
 
+        //for (int i = 0; i < numOfParticles; i++) {
+        //    vertices[i] = particles[i].GetPos();
+        //    std::cerr << "x: " << vertices[i].x << std::endl;
+        //    std::cerr << "x part " << particles[i].GetPos().x << std::endl;
+
+
+        //}
+
         shader.Bind();
         shader.Update(transform, camera);
-        // mesh.Draw();
+        mesh.Draw(vertices, numOfParticles);
 
         // Event handling
         SDL_Event Event;
@@ -137,8 +174,18 @@ int main(int argc, char* args[])
                 case SDLK_SPACE:
                     particles = initParticles(numOfParticles); 
                     break;
+                   
+                case SDLK_RIGHTBRACKET:
+                    dt += 0.001f;
+                    std::cout << "dt increased: " << dt << std::endl;
+                    break;
 
+                case SDLK_LEFTBRACKET:
+                    dt -= 0.001f;
+                    std::cout << "dt decreased: " << dt << std::endl;
+                    break;
 
+                // MOVEMENT
                 case SDLK_w:
                     cameraPos += cameraSpeed * camera.GetForward();
                     camera.setPosition(cameraPos);
