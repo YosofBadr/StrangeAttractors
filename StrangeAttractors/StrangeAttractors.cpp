@@ -12,20 +12,18 @@
 #define HEIGHT 1080
 
 
-float myRandom()
+float random()
 //Return random double within range [0,1]
 {
     return (rand() / (float)RAND_MAX);
 }
 
-Particle* initParticles(int numOfParticles) {
-    Particle* particles = new Particle[numOfParticles];
+std::vector<Particle> initParticles(unsigned int numOfParticles) {
+    std::vector<Particle> particles;
+
     // Init particles
-    for (int i = 0; i < numOfParticles; i++) {
-        float xCoord = myRandom() * 10.0;
-        float yCoord = myRandom() * 10.0;
-        float zCoord = myRandom() * 10.0;
-        particles[i] = Particle(glm::vec3(xCoord, yCoord, zCoord), glm::vec4(1.0f, 1.0f, 0.0f, 0.1f));
+    for (unsigned int i = 0; i < numOfParticles; i++) {
+        particles.push_back(Particle());
     }
 
     return particles;
@@ -69,8 +67,8 @@ int main(int argc, char* args[])
     float b = 0.2f;
     float r = 5.7;
 
-    const unsigned int numOfParticles = 10000;
-    Particle* particles = initParticles(numOfParticles);
+    const unsigned int numOfParticles = 1000;
+    std::vector<Particle> particles = initParticles(numOfParticles);
 
     //std::vector<glm::vec3> vertices(numOfParticles);
     //glm::vec3 vertices[] = {

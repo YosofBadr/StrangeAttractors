@@ -4,8 +4,18 @@
 
 class Particle {
 public:
+	float random()
+		//Return random double within range [0,1]
+	{
+		return (rand() / (float)RAND_MAX);
+	}
+
 	Particle() {
-		this->m_pos = glm::vec3(0.0, 0.0, 0.0);
+		float xCoord = random() * 10.0;
+		float yCoord = random() * 10.0;
+		float zCoord = random() * 10.0;
+
+		this->m_pos = glm::vec3(xCoord, yCoord, zCoord);
 		this->m_prevPos = glm::vec3(0.0, 0.0, 0.0);
 		this->m_color = glm::vec4(1.0, 1.0, 0.0, 1.0);
 		this->m_lifeSpan = 1.0f;
