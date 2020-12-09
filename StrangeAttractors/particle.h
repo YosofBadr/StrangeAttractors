@@ -12,10 +12,10 @@ public:
 		return (rand() / (float)RAND_MAX);
 	}
 
-	Particle() {
-		float xCoord = random() * 10.0;
-		float yCoord = random() * 10.0;
-		float zCoord = random() * 10.0;
+	Particle(float spread) {
+		float xCoord = random() * spread;
+		float yCoord = random() * spread;
+		float zCoord = random() * spread;
 
 		float red = random() * 1.0;
 		float blue = random() * 1.0;

@@ -17,12 +17,12 @@ float random()
     return (rand() / (float)RAND_MAX);
 }
 
-std::vector<Particle> initParticles(unsigned int numOfParticles) {
+std::vector<Particle> initParticles(unsigned int numOfParticles, float spread) {
     std::vector<Particle> particles;
 
     // Init particles
     for (unsigned int i = 0; i < numOfParticles; i++) {
-        particles.push_back(Particle());
+        particles.push_back(Particle(spread));
     }
 
     return particles;
@@ -58,6 +58,9 @@ void printInstructions() {
     std::cout << "i/I: increase/decrease sigma" << std::endl;
     std::cout << "o/O: increase/decrease rho" << std::endl;
     std::cout << "p/P: increase/decrease beta" << std::endl;
+    std::cout << "c/C: increase/decrease spread" << std::endl;
+    std::cout << "1-4: change attractor" << std::endl;
+
 }
 
 int main(int argc, char* args[])
@@ -112,7 +115,8 @@ int main(int argc, char* args[])
 
     const unsigned int numOfParticles = 25000;
     unsigned int numberOfDead = 0;
-    std::vector<Particle> particles = initParticles(numOfParticles);
+    float spread = 10.0;
+    std::vector<Particle> particles = initParticles(numOfParticles, spread);
 
     //std::vector<glm::vec3> vertices(numOfParticles);
     //glm::vec3 vertices[] = {
@@ -183,6 +187,24 @@ int main(int argc, char* args[])
                         dy = (x + (a * y)) * dt;
                         dz = (b + z * (x - r)) * dt;
                         break;
+
+                    case 4:
+                        float a = 0.3;
+                        float s = 1.0;
+                        dx = (x * (4 - y) + a * z) * dt;
+                        dy = (-y * (1 - x * x)) * dt;
+                        dz = (-x * (1.5 - s * z) - 0.05 * z)* dt;
+                        //float a = 40;
+                        //float c = 1.833;
+                        //float d = 0.16;
+                        //float e = 0.65;
+                        //float k = 55;
+                        //float f = 20;
+
+                        //dx = ((a * (y - x)) + (d*x*z)) * dt;
+                        //dy = (k * x + f * y - x * z) * dt;
+                        //dz = (c*z + x*y - e*x*x) * dt;
+                        break;
                                    
                 }
 
@@ -206,7 +228,7 @@ int main(int argc, char* args[])
 
             }
             else {
-                particles[i] = Particle();
+                particles[i] = Particle(spread);
             }
         }
 
@@ -274,7 +296,7 @@ int main(int argc, char* args[])
                     break;
 
                 case SDLK_SPACE:
-                    particles = initParticles(numOfParticles); 
+                    particles = initParticles(numOfParticles, spread);
                     break;
                    
                 case SDLK_r:
@@ -366,26 +388,42 @@ int main(int argc, char* args[])
                     }
                     break;
 
+                case SDLK_c:
+                    if (keyboard_state_array[SDL_SCANCODE_C] && !(keyboard_state_array[SDL_SCANCODE_LCTRL])) {
+                        spread -= 2.0f;
+                        std::cout << "Spread decreased: " << spread << std::endl;
+                    }
+                    else {
+                        spread += 2.0f;
+                        std::cout << "Spread increased: " << spread << std::endl;
+                    }
+                    break;
+
                 // Select Attractor
                 case SDLK_1:
                     scale = 0.02f;
                     attractor = 1;
                     dt = 0.005f;
-                    particles = initParticles(numOfParticles);
+                    particles = initParticles(numOfParticles, spread);
                     break;
 
                 case SDLK_2:
                     scale = 0.02f;
                     attractor = 2;
                     dt = 0.0005f;
-                    particles = initParticles(numOfParticles);
+                    particles = initParticles(numOfParticles, spread);
                     break;
 
                 case SDLK_3:
                     scale = 0.0005f;
                     attractor = 3;
                     dt = 0.01f;
-                    particles = initParticles(numOfParticles);
+                    particles = initParticles(numOfParticles, spread);
+                    break;
+
+                case SDLK_4:
+                    attractor = 4;
+                    particles = initParticles(numOfParticles, spread);
                     break;
 
                 // MOVEMENT
