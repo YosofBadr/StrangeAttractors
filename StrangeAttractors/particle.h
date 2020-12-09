@@ -24,7 +24,7 @@ public:
 		this->m_pos = glm::vec3(xCoord, yCoord, zCoord);
 		this->m_prevPos = glm::vec3(xCoord, yCoord, zCoord);
 		this->m_color = glm::vec4(red, green, blue, 1.0);
-		this->m_lifeSpan = 10.0f;
+		this->m_lifeSpan = random() * 10.0f;
 	}
 
 	Particle(glm::vec3 givenPos, glm::vec4 giveColor) {

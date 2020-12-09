@@ -28,25 +28,25 @@ std::vector<Particle> initParticles(unsigned int numOfParticles) {
     return particles;
 };
 
-unsigned int lastFreeIndex = 0;
-unsigned int findFreeIndex(std::vector<Particle> particles) {
-    for (unsigned int i = lastFreeIndex; i < particles.size(); ++i) {
-        if (particles[i].GetLifeSpan() <= 0.0f) {
-            lastFreeIndex = i;
-            return i;
-        }
-    }
-    // otherwise, do a linear search
-    for (unsigned int i = 0; i < lastFreeIndex; i++) {
-        if (particles[i].GetLifeSpan() <= 0.0f) {
-            lastFreeIndex = i;
-            return i;
-        }
-    }
-    // override first particle if all others are alive
-    lastFreeIndex = 0;
-    return 0;
-}
+//unsigned int lastFreeIndex = 0;
+//unsigned int findFreeIndex(std::vector<Particle> particles) {
+//    for (unsigned int i = lastFreeIndex; i < particles.size(); i++) {
+//        if (particles[i].GetLifeSpan() <= 0.0f) {
+//            lastFreeIndex = i;
+//            return i;
+//        }
+//    }
+//    // otherwise, do a linear search
+//    for (unsigned int i = 0; i < lastFreeIndex; i++) {
+//        if (particles[i].GetLifeSpan() <= 0.0f) {
+//            lastFreeIndex = i;
+//            return i;
+//        }
+//    }
+//    // override first particle if all others are alive
+//    lastFreeIndex = 0;
+//    return 0;
+//}
 
 void printInstructions() {
     std::cout << "KEYBINDS" << std::endl;
@@ -110,7 +110,7 @@ int main(int argc, char* args[])
     float b = 0.2f;
     float r = 5.7;
 
-    const unsigned int numOfParticles = 10000;
+    const unsigned int numOfParticles = 25000;
     unsigned int numberOfDead = 0;
     std::vector<Particle> particles = initParticles(numOfParticles);
 
@@ -145,15 +145,14 @@ int main(int argc, char* args[])
 
         display.Clear(0.0f, 0.0f, 0.0f, 1.0f);
 
-        if (numberOfDead > numOfParticles / 10) {
-            for (int i = 0; i < numberOfDead; i++) {
-                int emptyIndex = findFreeIndex(particles);
 
-                particles[emptyIndex] = Particle();
-            }
+        //for (int i = 0; i < 2; i++) {
+        //    int emptyIndex = findFreeIndex(particles);
 
-            numberOfDead = 0;
-        }
+        //    particles[emptyIndex] = Particle();
+
+        //    numberOfDead = 0;
+        //}
 
         // Update particles
         for (int i = 0; i < numOfParticles; i++) {
@@ -195,12 +194,21 @@ int main(int argc, char* args[])
                 z += dz;
 
                 particles[i].SetPos(glm::vec3(x, y, z));
+
+                //Follows path of lerenz attractor 
+                glBegin(GL_LINES);
+
+                    glColor4f(particles[i].GetColor().x + red, particles[i].GetColor().y + green, particles[i].GetColor().z + blue, particles[i].GetLifeSpan());
+                    glVertex3f(particles[i].GetPrevPos().x* scale, particles[i].GetPrevPos().y* scale, particles[i].GetPrevPos().z* scale);
+                    glVertex3f(particles[i].GetPos().x* scale, particles[i].GetPos().y* scale, particles[i].GetPos().z* scale);
+
+                glEnd();
+
             }
             else {
-                numberOfDead += 1;
+                particles[i] = Particle();
             }
         }
-
 
         //glPointSize(5);
         //glBegin(GL_POINTS);
@@ -213,20 +221,20 @@ int main(int argc, char* args[])
         //}
         //glEnd();
 
-         //Follows path of lerenz attractor 
-        glBegin(GL_LINES);
-            for (int i = 0; i < numOfParticles; i++) {
-                // Draw Particle trail
-                if (particles[i].GetLifeSpan() > 0.0f) {
-                    glColor4f(particles[i].GetColor().x + red, particles[i].GetColor().y + green, particles[i].GetColor().z + blue, particles[i].GetLifeSpan());
-                    //glBegin(GL_POINTS);
-                    //    glVertex3f(particles[i].GetPos().x * scale, particles[i].GetPos().y * scale, particles[i].GetPos().z * scale);
-                    //glEnd();
-                    glVertex3f(particles[i].GetPrevPos().x* scale, particles[i].GetPrevPos().y* scale, particles[i].GetPrevPos().z* scale);
-                    glVertex3f(particles[i].GetPos().x* scale, particles[i].GetPos().y* scale, particles[i].GetPos().z* scale);
-                }
-            }
-        glEnd();
+        //Follows path of lerenz attractor 
+        //glBegin(GL_LINES);
+        //    for (int i = 0; i < numOfParticles; i++) {
+        //        // Draw Particle trail
+        //        if (particles[i].GetLifeSpan() > 0.0f) {
+        //            glColor4f(particles[i].GetColor().x + red, particles[i].GetColor().y + green, particles[i].GetColor().z + blue, particles[i].GetLifeSpan());
+        //            //glBegin(GL_POINTS);
+        //            //    glVertex3f(particles[i].GetPos().x * scale, particles[i].GetPos().y * scale, particles[i].GetPos().z * scale);
+        //            //glEnd();
+        //            glVertex3f(particles[i].GetPrevPos().x* scale, particles[i].GetPrevPos().y* scale, particles[i].GetPrevPos().z* scale);
+        //            glVertex3f(particles[i].GetPos().x* scale, particles[i].GetPos().y* scale, particles[i].GetPos().z* scale);
+        //        }
+        //    }
+        //glEnd();
 
         //for (int i = 0; i < numOfParticles; i++) {
         //    vertices[i] = particles[i].GetPos();
@@ -316,11 +324,11 @@ int main(int argc, char* args[])
 
                 case SDLK_t:
                     if (keyboard_state_array[SDL_SCANCODE_T] && !(keyboard_state_array[SDL_SCANCODE_LCTRL])) {
-                        dt -= 0.001f;
+                        dt -= 0.0005f;
                         std::cout << "dt decreased: " << dt << std::endl;
                     }
                     else {
-                        dt += 0.001f;
+                        dt += 0.0005f;
                         std::cout << "dt increased: " << dt << std::endl;
                     }
                     break;
@@ -407,26 +415,35 @@ int main(int argc, char* args[])
                 break;
 
             case SDL_MOUSEMOTION:
-                float deltaX = Event.motion.xrel;;
-                float deltaY = - Event.motion.yrel;
+                if (!keyboard_state_array[SDL_SCANCODE_V]) {
+                    float deltaX = Event.motion.xrel;;
+                    float deltaY = -Event.motion.yrel;
 
-                deltaX *= cameraSensitivity;
-                deltaY *= cameraSensitivity;
+                    deltaX *= cameraSensitivity;
+                    deltaY *= cameraSensitivity;
 
-                yaw += deltaX;
-                pitch += deltaY;
+                    yaw += deltaX;
+                    pitch += deltaY;
 
-                if (pitch > 89.0f)
-                    pitch = 89.0f;
-                if (pitch < -89.0f)
-                    pitch = -89.0f;
+                    if (pitch > 89.0f)
+                        pitch = 89.0f;
+                    if (pitch < -89.0f)
+                        pitch = -89.0f;
 
-                glm::vec3 newForward;
-                newForward.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
-                newForward.y = sin(glm::radians(pitch));
-                newForward.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
-                camera.setForward(glm::normalize(newForward));
-                break;
+                    glm::vec3 newForward;
+                    newForward.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
+                    newForward.y = sin(glm::radians(pitch));
+                    newForward.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
+                    camera.setForward(glm::normalize(newForward));
+                    break;
+                }
+                else {
+                    float angleX = Event.motion.xrel;
+                    float angleY = Event.motion.yrel;
+                    transform.GetRot().x += glm::radians(angleY) * cameraSensitivity;
+                    transform.GetRot().y += glm::radians(angleX) * cameraSensitivity;
+
+                }
             }
         }
 
