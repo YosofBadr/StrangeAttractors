@@ -13,9 +13,9 @@ public:
 	}
 
 	Particle(float spread) {
-		float xCoord = random() * spread;
-		float yCoord = random() * spread;
-		float zCoord = random() * spread;
+		float xCoord = (random() * spread) + (random() * -spread);
+		float yCoord = (random() * spread) + (random() * -spread);
+		float zCoord = random();
 
 		float red = random() * 1.0;
 		float blue = random() * 1.0;

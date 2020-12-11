@@ -7,9 +7,90 @@
 #include "particle.h"
 #include "camera.h"
 
-#define WIDTH 1920
-#define HEIGHT 1080
+#define WIDTH 900
+#define HEIGHT 600
+#define FRAME_VALUES 120
+//http://sdl.beuc.net/sdl.wiki/SDL_Average_FPS_Measurement
+// An array to store frame times:
+Uint32 frametimes[FRAME_VALUES];
 
+// Last calculated SDL_GetTicks
+Uint32 frametimelast;
+
+// total frames rendered
+Uint32 framecount;
+
+// the value you want
+float framespersecond;
+
+// This function gets called once on startup.
+void fpsinit() {
+
+    // Set all frame times to 0ms.
+    memset(frametimes, 0, sizeof(frametimes));
+    framecount = 0;
+    framespersecond = 0;
+    frametimelast = SDL_GetTicks();
+
+}
+
+void fpsthink() {
+
+    Uint32 frametimesindex;
+    Uint32 getticks;
+    Uint32 count;
+    Uint32 i;
+
+    // frametimesindex is the position in the array. It ranges from 0 to FRAME_VALUES.
+    // This value rotates back to 0 after it hits FRAME_VALUES.
+    frametimesindex = framecount % FRAME_VALUES;
+
+    // store the current time
+    getticks = SDL_GetTicks();
+
+    // save the frame time value
+    frametimes[frametimesindex] = getticks - frametimelast;
+
+    // save the last frame time for the next fpsthink
+    frametimelast = getticks;
+
+    // increment the frame count
+    framecount++;
+
+    // Work out the current framerate
+
+    // The code below could be moved into another function if you don't need the value every frame.
+
+    // I've included a test to see if the whole array has been written to or not. This will stop
+    // strange values on the first few (FRAME_VALUES) frames.
+    if (framecount < FRAME_VALUES) {
+
+        count = framecount;
+
+    }
+    else {
+
+        count = FRAME_VALUES;
+
+    }
+
+    // add up all the values and divide to get the average frame time.
+    framespersecond = 0;
+    for (i = 0; i < count; i++) {
+
+        framespersecond += frametimes[i];
+
+    }
+
+    framespersecond /= count;
+
+    // now to make it an actual frames per second value...
+    framespersecond = 1000.f / framespersecond;
+
+}
+bool multipleEmitter = false;
+int renderAs = 0;
+float lineWidth = 1.0f;
 
 float random()
 //Return random double within range [0,1]
@@ -20,33 +101,21 @@ float random()
 std::vector<Particle> initParticles(unsigned int numOfParticles, float spread) {
     std::vector<Particle> particles;
 
+    if (multipleEmitter == true) {
+        numOfParticles /= 2;
+    }
+
     // Init particles
     for (unsigned int i = 0; i < numOfParticles; i++) {
         particles.push_back(Particle(spread));
+
+        if (multipleEmitter == true) {
+            particles.push_back(Particle(-spread));
+        }
     }
 
     return particles;
 };
-
-//unsigned int lastFreeIndex = 0;
-//unsigned int findFreeIndex(std::vector<Particle> particles) {
-//    for (unsigned int i = lastFreeIndex; i < particles.size(); i++) {
-//        if (particles[i].GetLifeSpan() <= 0.0f) {
-//            lastFreeIndex = i;
-//            return i;
-//        }
-//    }
-//    // otherwise, do a linear search
-//    for (unsigned int i = 0; i < lastFreeIndex; i++) {
-//        if (particles[i].GetLifeSpan() <= 0.0f) {
-//            lastFreeIndex = i;
-//            return i;
-//        }
-//    }
-//    // override first particle if all others are alive
-//    lastFreeIndex = 0;
-//    return 0;
-//}
 
 void printInstructions() {
     std::cout << "KEYBINDS" << std::endl;
@@ -56,11 +125,13 @@ void printInstructions() {
     std::cout << "l/L: increase/decrease lifetime" << std::endl;
     std::cout << "t/T: increase/decrease change in time" << std::endl;
     std::cout << "i/I: increase/decrease sigma" << std::endl;
-    std::cout << "o/O: increase/decrease rho" << std::endl;
+    std::cout << "o/O: increase/decrease rho" << std::endl; 
     std::cout << "p/P: increase/decrease beta" << std::endl;
     std::cout << "c/C: increase/decrease spread" << std::endl;
+    std::cout << "z: Render points or lines" << std::endl;
+    std::cout << "e: Toggle extra emmiter" << std::endl;
+    std::cout << "f/F: increase/decrease spread" << std::endl;
     std::cout << "1-4: change attractor" << std::endl;
-
 }
 
 int main(int argc, char* args[])
@@ -79,7 +150,7 @@ int main(int argc, char* args[])
     glEnable(GL_BLEND);
     //glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE);
-    const int FPS = 60;
+    const int FPS = 120;
     const int frameDelay = 1000 / FPS;
 
     Uint32 frameStart;
@@ -90,7 +161,7 @@ int main(int argc, char* args[])
     Camera camera(glm::vec3(0.0f, 0.0f, 2.0f), 70.0f, (float)WIDTH / (float)HEIGHT, 0.1f, 1000.0f);
 
     // Change in time
-    float dt = 0.005f;
+    float dt = 0.0055f;
 
     // Rate of life span decay
     float decay = 0.002f;
@@ -113,7 +184,7 @@ int main(int argc, char* args[])
     float b = 0.2f;
     float r = 5.7;
 
-    const unsigned int numOfParticles = 25000;
+    const unsigned int numOfParticles = 20000;
     unsigned int numberOfDead = 0;
     float spread = 10.0;
     std::vector<Particle> particles = initParticles(numOfParticles, spread);
@@ -144,19 +215,14 @@ int main(int argc, char* args[])
     bool firstMouse = true;
  
     // While window is running do some drawing
+    fpsinit();
     while (!display.IsClosed()) {
         frameStart = SDL_GetTicks();
 
         display.Clear(0.0f, 0.0f, 0.0f, 1.0f);
 
-
-        //for (int i = 0; i < 2; i++) {
-        //    int emptyIndex = findFreeIndex(particles);
-
-        //    particles[emptyIndex] = Particle();
-
-        //    numberOfDead = 0;
-        //}
+        glLineWidth(lineWidth);
+        glBegin(renderAs);
 
         // Update particles
         for (int i = 0; i < numOfParticles; i++) {
@@ -189,11 +255,11 @@ int main(int argc, char* args[])
                         break;
 
                     case 4:
-                        float a = 0.3;
-                        float s = 1.0;
-                        dx = (x * (4 - y) + a * z) * dt;
-                        dy = (-y * (1 - x * x)) * dt;
-                        dz = (-x * (1.5 - s * z) - 0.05 * z)* dt;
+                        //float a = 0.3;
+                        //float s = 1.0;
+                        //dx = (x * (4 - y) + a * z) * dt;
+                        //dy = (-y * (1 - x * x)) * dt;
+                        //dz = (-x * (1.5 - s * z) - 0.05 * z)* dt;
                         //float a = 40;
                         //float c = 1.833;
                         //float d = 0.16;
@@ -204,6 +270,16 @@ int main(int argc, char* args[])
                         //dx = ((a * (y - x)) + (d*x*z)) * dt;
                         //dy = (k * x + f * y - x * z) * dt;
                         //dz = (c*z + x*y - e*x*x) * dt;
+                        float a = 40;
+                        float c = 1.833;
+                        float d = 0.16;
+                        float e = 0.65;
+                        float k = 55;
+                        float f = 20;
+
+                        dx = ((a * (y - x)) + (d*x*z)) * dt;
+                        dy = (k * x + f * y - x * z) * dt;
+                        dz = (c*z + x*y - e*x*x) * dt;
                         break;
                                    
                 }
@@ -218,55 +294,38 @@ int main(int argc, char* args[])
                 particles[i].SetPos(glm::vec3(x, y, z));
 
                 //Follows path of lerenz attractor 
-                glBegin(GL_LINES);
+                /*glLineWidth(lineWidth);*/
+                //glBegin(renderAs);
 
                     glColor4f(particles[i].GetColor().x + red, particles[i].GetColor().y + green, particles[i].GetColor().z + blue, particles[i].GetLifeSpan());
                     glVertex3f(particles[i].GetPrevPos().x* scale, particles[i].GetPrevPos().y* scale, particles[i].GetPrevPos().z* scale);
                     glVertex3f(particles[i].GetPos().x* scale, particles[i].GetPos().y* scale, particles[i].GetPos().z* scale);
 
-                glEnd();
+                //glEnd();
 
             }
             else {
-                particles[i] = Particle(spread);
+                if (!multipleEmitter) {
+                        particles[i] = Particle(spread);
+
+                }
+                else {
+                    if (random() >= 0.5) {
+                        float xCoord = (random() * spread) + (random() * -spread);
+                        float yCoord = (random() * spread) + (random() * -spread);
+                        float zCoord = random();
+                        particles[i].GetLifeSpan() = random() * 10.0f;
+                    }
+                    else {
+                        particles[i] = Particle(-spread);
+                    }
+                }
             }
         }
-
-        //glPointSize(5);
-        //glBegin(GL_POINTS);
-        //for (int i = 0; i < numOfParticles; i++) {
-        //    // Draw Particle trail
-        //    if (particles[i].GetLifeSpan() > 0.0f) {
-        //        glColor4f(1.0f, 0.0f, 1.0f, particles[i].GetLifeSpan() + 0.05f);
-        //        glVertex3f(particles[i].GetPrevPos().x * scale, particles[i].GetPrevPos().y * scale, particles[i].GetPrevPos().z * scale);
-        //    }
-        //}
-        //glEnd();
-
-        //Follows path of lerenz attractor 
-        //glBegin(GL_LINES);
-        //    for (int i = 0; i < numOfParticles; i++) {
-        //        // Draw Particle trail
-        //        if (particles[i].GetLifeSpan() > 0.0f) {
-        //            glColor4f(particles[i].GetColor().x + red, particles[i].GetColor().y + green, particles[i].GetColor().z + blue, particles[i].GetLifeSpan());
-        //            //glBegin(GL_POINTS);
-        //            //    glVertex3f(particles[i].GetPos().x * scale, particles[i].GetPos().y * scale, particles[i].GetPos().z * scale);
-        //            //glEnd();
-        //            glVertex3f(particles[i].GetPrevPos().x* scale, particles[i].GetPrevPos().y* scale, particles[i].GetPrevPos().z* scale);
-        //            glVertex3f(particles[i].GetPos().x* scale, particles[i].GetPos().y* scale, particles[i].GetPos().z* scale);
-        //        }
-        //    }
-        //glEnd();
-
-        //for (int i = 0; i < numOfParticles; i++) {
-        //    vertices[i] = particles[i].GetPos();
-        //    std::cerr << "x: " << vertices[i].x << std::endl;
-        //    std::cerr << "x part " << particles[i].GetPos().x << std::endl;
-        //}
+        glEnd();
 
         shader.Bind();
         shader.Update(transform, camera);
-        //mesh.Draw(vertices, numOfParticles);
 
         // Event handling
         SDL_Event Event;
@@ -334,12 +393,12 @@ int main(int argc, char* args[])
 
                 case SDLK_l:
                     if (keyboard_state_array[SDL_SCANCODE_L] && !(keyboard_state_array[SDL_SCANCODE_LCTRL])) {
-                        decay += 0.002f;
+                        decay += 0.0005f;
                         std::cout << "Lifetime decreased: " << decay << std::endl;
 
                     }
                     else {
-                        decay -= 0.002f;
+                        decay -= 0.0005f;
                         std::cout << "Lifetime increased: " << decay << std::endl;
                     }
                     break;
@@ -361,8 +420,8 @@ int main(int argc, char* args[])
                         std::cout << "Sigma decreased: " << sigma << std::endl;
                     }
                     else {
-                        sigma += 0.1f;
-                        std::cout << "Sigma increased: " << sigma << std::endl;
+                    sigma += 0.1f;
+                    std::cout << "Sigma increased: " << sigma << std::endl;
                     }
                     break;
 
@@ -399,7 +458,29 @@ int main(int argc, char* args[])
                     }
                     break;
 
-                // Select Attractor
+                case SDLK_f:
+                    if (keyboard_state_array[SDL_SCANCODE_F] && !(keyboard_state_array[SDL_SCANCODE_LCTRL])) {
+                        lineWidth -= 1.0f;
+                        std::cout << "Line width decreased: " << lineWidth << std::endl;
+                    }
+                    else {
+                        lineWidth += 1.0f;
+                        std::cout << "Line width increased: " << lineWidth << std::endl;
+                    }
+                    break;
+
+                case SDLK_e:
+                    std::cout << "Emitter toggled: " << multipleEmitter << std::endl;
+
+                    if (multipleEmitter == true) {
+                        multipleEmitter = false;
+                    }
+                    else {
+                        multipleEmitter = true;
+                    }
+                    break;
+
+                    // Select Attractor
                 case SDLK_1:
                     scale = 0.02f;
                     attractor = 1;
@@ -415,18 +496,19 @@ int main(int argc, char* args[])
                     break;
 
                 case SDLK_3:
-                    scale = 0.0005f;
+                    scale = 0.005f;
                     attractor = 3;
                     dt = 0.01f;
                     particles = initParticles(numOfParticles, spread);
                     break;
 
                 case SDLK_4:
+                    dt = -0.0005f;
                     attractor = 4;
                     particles = initParticles(numOfParticles, spread);
                     break;
 
-                // MOVEMENT
+                    // MOVEMENT
                 case SDLK_w:
                     cameraPos += cameraSpeed * camera.GetForward();
                     camera.setPosition(cameraPos);
@@ -449,9 +531,19 @@ int main(int argc, char* args[])
                     cameraPos += glm::normalize(glm::cross(camera.GetForward(), camera.GetUp())) * cameraSpeed;
                     camera.setPosition(cameraPos);
                     break;
+
+                case SDLK_z:
+                    if (renderAs == 0) {
+                        renderAs = 1;
+                    }
+                    else {
+                        renderAs = 0;
+                    }
+                    break;
                 }
                 break;
 
+              
             case SDL_MOUSEMOTION:
                 if (!keyboard_state_array[SDL_SCANCODE_V]) {
                     float deltaX = Event.motion.xrel;;
@@ -487,6 +579,8 @@ int main(int argc, char* args[])
 
         display.Update();
         frameTime = SDL_GetTicks() - frameStart;
+        fpsthink();
+        //printf("%f\n", framespersecond);
 
         if (frameDelay > frameTime) {
             SDL_Delay(frameDelay - frameTime);
